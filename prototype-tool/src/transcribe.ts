@@ -63,17 +63,17 @@ async function run() {
     // MimeTypeをMP3に変更
     const audioFile = fileToGenerativePart(audioFilePath, "audio/mp3");
 
-    const prompt = "この音声ファイルの内容を文字起こししてください。";
+    const prompt = "この音声ファイルで話されている内容を要約し、箇条書きでリストアップしてください。";
 
     const result = await model.generateContent([prompt, audioFile]);
     const response = result.response;
     const text = response.text();
 
-    console.log("Gemini APIによる文字起こし結果:");
+    console.log("Gemini APIによる要約結果:");
     console.log(text);
 
   } catch (error) {
-    console.error("文字起こし中にエラーが発生しました:", error);
+    console.error("要約中にエラーが発生しました:", error);
     process.exit(1);
   }
 }
