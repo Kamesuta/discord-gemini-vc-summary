@@ -63,7 +63,13 @@ async function run() {
     // MimeTypeをMP3に変更
     const audioFile = fileToGenerativePart(audioFilePath, "audio/mp3");
 
-    const prompt = "この音声ファイルで話されている内容を要約し、箇条書きでリストアップしてください。";
+    const prompt = `
+    この音声ファイルはDiscordのVCで話されている会話です。
+    話されているトピックをわかりやすく5行程度に要約し、要約結果"のみ"を出力してください。
+
+    ・Discordの要約チャンネルで表示するため、ポップでユーザーが馴染みやすい文にしてください。
+    ・「- 」で箇条書きが書けます。
+    `;
 
     const result = await model.generateContent([prompt, audioFile]);
     const response = result.response;
