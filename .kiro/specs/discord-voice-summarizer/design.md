@@ -10,58 +10,65 @@ Discord音声要約botは、Node.jsとTypeScriptで構築され、discord.jsラ�
 
 ```mermaid
 graph TB
-    A[Discord Bot] --> B[Voice Manager]
+    A[Discord Bot Core] --> B[Voice Manager]
     A --> C[Config Manager]
     A --> D[Memory Manager]
     A --> E[Summary Service]
+    A --> F[Command Handler]
     
-    B --> F[Audio Recorder]
-    B --> G[User Tracker]
+    B --> G[Audio Recorder]
+    B --> H[User Tracker]
     
-    E --> H[Gemini API Client]
-    E --> I[Text Processor]
+    E --> I[Gemini API Client]
     
     D --> J[Short-term Memory]
     D --> K[Medium-term Memory]
     D --> L[Long-term Memory]
     
     C --> M[config.toml]
-    F --> N[Audio Files]
-    H --> O[Google Gemini API]
+    G --> N[Audio Files]
+    I --> O[Google Gemini API]
+    F --> P[Slash Commands]
 ```
 
 ### 主要コンポーネント
 
-1. **Discord Bot Core**: メインのbot制御とイベント処理
-2. **Voice Manager**: ボイスチャンネルの参加/退出とユーザー監視
-3. **Audio Recorder**: ユーザーごとの音声録音とセグメント管理
-4. **Summary Service**: Gemini APIを使用した要約生成
-5. **Memory Manager**: 短期・中期・長期メモリーの管理
-6. **Config Manager**: config.tomlファイルの読み込みと管理
+1. **Discord Bot Core**: 既存テンプレートベースのメインbot制御とイベント処理
+2. **Command Handler**: 既存のSlashCommandシステムを活用した管理コマンド
+3. **Voice Manager**: ボイスチャンネルの参加/退出とユーザー監視
+4. **Audio Recorder**: ユーザーごとの音声録音とセグメント管理
+5. **Summary Service**: 既存のGemini APIクライアントを活用した要約生成
+6. **Memory Manager**: 短期・中期・長期メモリーの管理
+7. **Config Manager**: 既存のconfig.tomlシステムを拡張した設定管理
 
 ## コンポーネントと インターフェース
 
-### Config Manager
+### Config Manager (既存システム拡張)
 
 ```typescript
-interface BotConfig {
-  discord: {
-    token: string;
-    guildId: string;
+// 既存のConfigインターフェースを拡張
+export interface Config {
+  guild_ids: string[];
+  
+  // 音声要約bot用の新しい設定
+  voice_summary: {
+    min_users_to_join: number;
+    allowed_categories: string[];
+    denied_channels: string[];
+    summary_interval: number; // 分
+    summary_channel_id: string;
   };
-  gemini: {
-    apiKey: string;
-    model: string;
-  };
-  voice: {
-    minUsersToJoin: number;
-    allowedCategories: string[];
-    deniedChannels: string[];
-    summaryInterval: number; // 分
-  };
-  channels: {
-    summaryChannelId: string;
-  };
+}
+```
+
+### Gemini API Client (既存実装活用)
+
+```typescript
+// prototype-tool/src/transcribe.tsの実装を基に
+interface GeminiService {
+  transcribeAndSummarize(audioBuffer: Buffer, context: string): Promise<string>;
+  generateWelcomeMessage(currentActivity: string, recentSummary: string): Promise<string>;
+  updateCurrentActivity(transcription: string, previousActivity: string): Promise<string>;
 }
 ```
 
@@ -131,25 +138,29 @@ interface SummaryService {
 
 ## データモデル
 
-### 設定ファイル (config.toml)
+### 設定ファイル (config.toml) - 既存形式拡張
 
 ```toml
-[discord]
-token = "YOUR_DISCORD_BOT_TOKEN"
-guild_id = "YOUR_GUILD_ID"
+# 既存設定
+guild_ids = ["YOUR_GUILD_ID"]
 
-[gemini]
-api_key = "YOUR_GEMINI_API_KEY"
-model = "gemini-1.5-flash"
-
-[voice]
+# 音声要約bot用の新しい設定セクション
+[voice_summary]
 min_users_to_join = 3
 allowed_categories = ["General Voice", "Gaming"]
 denied_channels = ["AFK Channel", "Private Room"]
 summary_interval = 1  # 分
-
-[channels]
 summary_channel_id = "YOUR_SUMMARY_CHANNEL_ID"
+```
+
+### 環境変数 (.env)
+
+```env
+# 既存
+DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN
+
+# 新規追加
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 ```
 
 ### メモリーストレージ
@@ -230,6 +241,27 @@ interface TestData {
 - Gemini API: 予定された応答を返すモッククライアント
 - 音声データ: テスト用の短い音声ファイル
 
+## 既存テンプレート統合
+
+### Discord.js統合
+
+- 既存のCommandHandlerシステムを活用
+- GatewayIntentBitsにGuildVoiceStatesを追加
+- 既存のイベントハンドリング構造を拡張
+
+### 管理コマンド
+
+```typescript
+// /voice-summary start - 手動でbotを開始
+// /voice-summary stop - 手動でbotを停止
+// /voice-summary status - 現在の状態確認
+class VoiceSummaryCommand extends CommandGroupInteraction {
+  command = new SlashCommandBuilder()
+    .setName("voice-summary")
+    .setDescription("音声要約botの管理");
+}
+```
+
 ## パフォーマンス考慮事項
 
 ### メモリー管理
@@ -240,9 +272,9 @@ interface TestData {
 
 ### API使用量最適化
 
+- 既存のGemini実装（prototype-tool）を活用
 - 音声セグメントのバッチ処理
 - 無音期間の自動検出による不要な処理の削減
-- Gemini APIレスポンスのキャッシュ（同一内容の重複要求回避）
 
 ### 音声処理最適化
 
