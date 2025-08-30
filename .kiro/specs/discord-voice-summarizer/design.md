@@ -34,7 +34,7 @@ graph TB
 ### 主要コンポーネント
 
 1. **Discord Bot Core**: 既存テンプレートベースのメインbot制御とイベント処理
-2. **Command Handler**: 既存のSlashCommandシステムを活用した管理コマンド
+2. **Command Handler**: 既存のSlashCommandシステムを活用した管理コマンド、Interactionシステムを使用したパネル管理
 3. **Voice Manager**: ボイスチャンネルの参加/退出とユーザー監視
 4. **Audio Recorder**: ユーザーごとの音声録音とセグメント管理
 5. **Summary Service**: 既存のGemini APIクライアントを活用した要約生成
@@ -51,12 +51,12 @@ export interface Config {
   guild_ids: string[];
   
   // 音声要約bot用の新しい設定
-  voice_summary: {
+  vc_summary: {
     min_users_to_join: number;
-    allowed_categories: string[];
-    denied_channels: string[];
-    summary_interval: number; // 分
-    summary_channel_id: string;
+    allowed_category_ids: string[];  // カテゴリID
+    denied_channel_ids: string[];    // 拒否チャンネルID
+    summary_interval: number;        // 分
+    summary_channel_id: string;      // 要約投稿チャンネルID
   };
 }
 ```
@@ -145,12 +145,12 @@ interface SummaryService {
 guild_ids = ["YOUR_GUILD_ID"]
 
 # 音声要約bot用の新しい設定セクション
-[voice_summary]
+[vc_summary]
 min_users_to_join = 3
-allowed_categories = ["General Voice", "Gaming"]
-denied_channels = ["AFK Channel", "Private Room"]
+allowed_category_ids = ["123456789012345678", "234567890123456789"]  # 許可するカテゴリID
+denied_channel_ids = ["345678901234567890", "456789012345678901"]    # 拒否するチャンネルID
 summary_interval = 1  # 分
-summary_channel_id = "YOUR_SUMMARY_CHANNEL_ID"
+summary_channel_id = "567890123456789012"  # 要約投稿チャンネルID
 ```
 
 ### 環境変数 (.env)
@@ -252,13 +252,13 @@ interface TestData {
 ### 管理コマンド
 
 ```typescript
-// /voice-summary start - 手動でbotを開始
-// /voice-summary stop - 手動でbotを停止
-// /voice-summary status - 現在の状態確認
-class VoiceSummaryCommand extends CommandGroupInteraction {
+// /vc-summary start - 手動でbotを開始
+// /vc-summary stop - 手動でbotを停止
+// /vc-summary status - 現在の状態確認
+class VcSummaryCommand extends CommandGroupInteraction {
   command = new SlashCommandBuilder()
-    .setName("voice-summary")
-    .setDescription("音声要約botの管理");
+    .setName("vc-summary")
+    .setDescription("VC要約botの管理");
 }
 ```
 
