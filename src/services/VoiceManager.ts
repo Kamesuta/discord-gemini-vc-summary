@@ -37,21 +37,21 @@ export class VoiceManagerImpl implements VoiceManager {
    */
   checkAutoJoin(channel: VoiceChannel): Promise<boolean> {
     if (this._connection) {
-      return Promise.resolve(false); // Already in a voice channel
+      return Promise.resolve(false); // 既にボイスチャンネルに接続済み
     }
 
-    // Check if the channel is a voice channel
+    // チャンネルがボイスチャンネルかチェック
     if (channel.type !== ChannelType.GuildVoice) {
       return Promise.resolve(false);
     }
 
-    // Check allowed category IDs
+    // 許可されたカテゴリIDをチェック
     if (this._config.vc_summary.allowed_category_ids.length > 0 &&
         !this._config.vc_summary.allowed_category_ids.includes(channel.parentId || "")) {
       return Promise.resolve(false);
     }
 
-    // Check denied channel IDs
+    // 拒否されたチャンネルIDをチェック
     if (this._config.vc_summary.denied_channel_ids.includes(channel.id)) {
       return Promise.resolve(false);
     }
@@ -66,24 +66,24 @@ export class VoiceManagerImpl implements VoiceManager {
    */
   async joinChannel(channel: VoiceChannel): Promise<void> {
     if (this._connection && this._connection.state.status !== VoiceConnectionStatus.Destroyed) {
-      console.log(`Already connected to a voice channel. Leaving current channel first.`);
-      void this.leaveChannel(); // Changed from await this.leaveChannel();
+      console.log(`既にボイスチャンネルに接続しています。まず現在のチャンネルを退出します。`);
+      void this.leaveChannel(); // await this.leaveChannel() から変更
     }
 
     this._connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
-      selfDeaf: false, // Bot should not be deafened to record audio
+      selfDeaf: false, // ボットは音声を録音するためにデフンであってはなりません
     });
 
     this._currentChannel = channel;
 
     try {
       await entersState(this._connection, VoiceConnectionStatus.Ready, 30_000);
-      console.log(`Joined voice channel: ${channel.name}`);
+      console.log(`ボイスチャンネルに参加しました: ${channel.name}`);
 
-      // Start recording for all current unmuted users
+      // 現在ミュートされていないすべてのユーザーの録音を開始
       this.getUnmutedUsers(channel).forEach(user => {
         const member = channel.guild.members.cache.get(user.id);
         if (member && !member.voice.mute && !member.user.bot) {
@@ -92,15 +92,12 @@ export class VoiceManagerImpl implements VoiceManager {
       });
 
     } catch (error) {
-      this._connection.destroy();
-      this._connection = null;
-      this._currentChannel = null;
-      console.error(`Failed to join voice channel ${channel.name}:`, error);
+      console.error(`ボイスチャンネル ${channel.name} への参加に失敗しました:`, error);
       throw error;
     }
 
     this._connection.on(VoiceConnectionStatus.Disconnected, (_oldState, newState) => {
-      console.log(`Voice connection disconnected. Reason: ${newState.reason}, Status: ${newState.status}`);
+      console.log(`ボイス接続が切断されました。理由: ${newState.reason}, ステータス: ${newState.status}`);
       void this.leaveChannel();
     });
   }
@@ -111,7 +108,7 @@ export class VoiceManagerImpl implements VoiceManager {
    */
   leaveChannel(): Promise<void> {
     if (this._connection) {
-      // Stop all recordings before leaving
+      // 退出前にすべての録音を停止
       this._currentChannel?.members.forEach(member => {
         if (!member.user.bot) {
           this._audioRecorder.stopRecording(member.id);
@@ -120,7 +117,7 @@ export class VoiceManagerImpl implements VoiceManager {
       this._connection.destroy();
       this._connection = null;
       this._currentChannel = null;
-      console.log("Left voice channel.");
+      console.log("ボイスチャンネルを退出しました。");
     }
     return Promise.resolve();
   }
@@ -143,7 +140,7 @@ export class VoiceManagerImpl implements VoiceManager {
    */
   onUserJoin(member: GuildMember, channel: VoiceChannel): void {
     if (this._currentChannel?.id === channel.id && !member.user.bot && !member.voice.mute) {
-      console.log(`User ${member.user.tag} joined and is unmuted. Starting recording.`);
+      console.log(`ユーザー ${member.user.tag} が参加し、ミュート解除されています。録音を開始します。`);
       this._audioRecorder.startRecording(member.id, this._connection!.receiver);
     }
   }
@@ -155,13 +152,13 @@ export class VoiceManagerImpl implements VoiceManager {
    */
   async onUserLeave(member: GuildMember, channel: VoiceChannel): Promise<void> {
     if (this._currentChannel?.id === channel.id && !member.user.bot) {
-      console.log(`User ${member.user.tag} left. Stopping recording.`);
+      console.log(`ユーザー ${member.user.tag} が退出しました。録音を停止します。`);
       this._audioRecorder.stopRecording(member.id);
 
-      // Check if all non-bot users have left
+      // ボット以外のすべてのユーザーが退出したかチェック
       const remainingUsers = channel.members.filter(m => !m.user.bot && !m.voice.mute);
       if (remainingUsers.size === 0) {
-        console.log("All non-bot users left. Leaving channel.");
+        console.log("ボット以外のすべてのユーザーが退出しました。チャンネルを退出します。");
         await this.leaveChannel();
       }
     }

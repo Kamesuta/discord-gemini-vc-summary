@@ -50,7 +50,7 @@ export class AudioRecorder {
     const audioStream = receiver.subscribe(userId, { 
       end: { 
         behavior: EndBehaviorType.AfterSilence, 
-        duration: 100 // 100ms of silence to end a segment
+        duration: 100 // 100msの無音でセグメントを終了
       }
     });
     this._receiveStreams.set(userId, audioStream);
@@ -62,11 +62,11 @@ export class AudioRecorder {
 
     audioStream.on("data", (chunk: Buffer<ArrayBufferLike>) => {
       this._audioBuffers.get(userId)?.push(chunk);
-      // Reset silence detection timer on data
+      // 無音検出タイマーをリセット
       if (this._segmentTimers.has(userId)) {
         clearTimeout(this._segmentTimers.get(userId));
       }
-      this._segmentTimers.set(userId, setTimeout(() => this._endSegment(userId), 500)); // End segment after 500ms of silence
+      this._segmentTimers.set(userId, setTimeout(() => this._endSegment(userId), 500)); // 500msの無音後にセグメントを終了
     });
 
     audioStream.on("end", () => {
@@ -104,7 +104,7 @@ export class AudioRecorder {
       clearTimeout(this._segmentTimers.get(userId));
       this._segmentTimers.delete(userId);
     }
-    this._endSegment(userId); // Ensure last segment is saved
+    this._endSegment(userId); // 最後のセグメントが保存されていることを確認
     const userSegments = this._segments.get(userId) || [];
     this._segments.delete(userId);
     this._audioBuffers.delete(userId);
@@ -122,12 +122,12 @@ export class AudioRecorder {
       const audioBuffer = Buffer.concat(buffers);
       const segment: AudioSegment = {
         userId,
-        startTime: new Date(), // TODO: Actual start time
-        endTime: new Date(),   // TODO: Actual end time
+        startTime: new Date(), // TODO: 実際の開始時刻
+        endTime: new Date(),   // TODO: 実際の終了時刻
         audioBuffer,
       };
       this._segments.get(userId)?.push(segment);
-      this._audioBuffers.set(userId, []); // Clear buffer for next segment
+      this._audioBuffers.set(userId, []); // 次のセグメントのためにバッファをクリア
       console.log(`Segment ended for user ${userId}, buffer size: ${audioBuffer.length}`);
     }
   }
@@ -138,10 +138,9 @@ export class AudioRecorder {
    * @returns 無音状態であればtrue、そうでなければfalse
    */
   detectSilence(_userId: string): boolean {
-    // This is handled by EndBehaviorType.AfterSilence in subscribe options
-    // and the _segmentTimers logic. This method might not be directly needed
-    // or could be used to query the current silence state if exposed by @discordjs/voice.
-    return false; // Placeholder
+    // これはsubscribeオプションのEndBehaviorType.AfterSilenceと_segmentTimersロジックによって処理されます。
+    // このメソッドは直接必要ないか、@discordjs/voiceによって公開されている場合は現在の無音状態をクエリするために使用できます。
+    return false; // プレースホルダー
   }
 
   /**

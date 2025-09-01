@@ -11,7 +11,7 @@ export class ErrorHandler {
    */
   handleDiscordError(error: Error, context: string): void {
     logger.error(`Discord API Error in ${context}:`, error);
-    // Implement specific Discord API error handling (e.g., permission issues, rate limits)
+    // Discord API固有のエラーハンドリングを実装（例：権限不足、レート制限）
   }
 
   /**
@@ -21,8 +21,8 @@ export class ErrorHandler {
    */
   handleGeminiError(error: Error, context: string): void {
     logger.error(`Gemini API Error in ${context}:`, error);
-    // Implement specific Gemini API error handling (e.g., API key issues, rate limits)
-    // Consider retry mechanism here or in the GeminiService itself
+    // Gemini API固有のエラーハンドリングを実装（例：APIキーの問題、レート制限）
+    // ここで、またはGeminiService自体でリトライメカニズムを検討
   }
 
   /**
@@ -32,7 +32,7 @@ export class ErrorHandler {
    */
   handleAudioError(error: Error, context: string): void {
     logger.error(`Audio Error in ${context}:`, error);
-    // Implement specific audio error handling (e.g., device issues, file corruption)
+    // 音声固有のエラーハンドリングを実装（例：デバイスの問題、ファイル破損）
   }
 
   /**
@@ -42,7 +42,7 @@ export class ErrorHandler {
    */
   handleConfigError(error: Error, context: string): void {
     logger.error(`Configuration Error in ${context}:`, error);
-    // Implement specific config error handling (e.g., invalid values, missing files)
+    // 設定固有のエラーハンドリングを実装（例：無効な値、ファイル不足）
   }
 
   /**

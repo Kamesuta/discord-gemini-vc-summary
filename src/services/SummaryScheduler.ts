@@ -48,18 +48,18 @@ export class SummaryScheduler {
    */
   start(): void {
     if (this._intervalId) {
-      console.log("Summary scheduler already running.");
+      console.log("スケジューラーは既に実行中です。");
       return;
     }
 
     const intervalMinutes = this._config.vc_summary.summary_interval;
     if (intervalMinutes <= 0) {
-      console.warn("Summary interval is not set or is invalid. Skipping scheduler start.");
+      console.warn("要約間隔が設定されていないか無効です。スケジューラーの開始をスキップします。");
       return;
     }
 
     this._intervalId = setInterval(() => { void this._generateAndPostSummary(); }, intervalMinutes * 60 * 1000);
-    console.log(`Summary scheduler started, posting every ${intervalMinutes} minutes.`);
+    console.log(`要約スケジューラーが開始されました。${intervalMinutes}分ごとに投稿します。`);
   }
 
   /**
@@ -69,7 +69,7 @@ export class SummaryScheduler {
     if (this._intervalId) {
       clearInterval(this._intervalId);
       this._intervalId = null;
-      console.log("Summary scheduler stopped.");
+      console.log("要約スケジューラーが停止されました。");
     }
   }
 
@@ -78,17 +78,17 @@ export class SummaryScheduler {
    * 短期メモリーのコンテキストがなければスキップします。
    */
   private async _generateAndPostSummary(): Promise<void> {
-    console.log("Attempting to generate and post summary...");
+    console.log("要約の生成と投稿を試行中...");
     const shortTermContext = this._memoryManager.getShortTermContext();
 
     if (!shortTermContext) {
-      console.log("No short-term context available for summary. Skipping.");
+      console.log("要約に利用できる短期コンテキストがありません。スキップします。");
       return;
     }
 
     try {
-      // For simplicity, using short-term context directly for now.
-      // In a real scenario, you might process audio segments here.
+      // 簡略化のため、ここでは短期コンテキストを直接使用しています。
+      // 実際のシナリオでは、ここで音声セグメントを処理するかもしれません。
       const summary = await this._geminiService.transcribeAndSummarize(Buffer.from(shortTermContext), this._memoryManager.getMediumTermContext());
 
       if (summary) {
@@ -98,13 +98,13 @@ export class SummaryScheduler {
 
         if (channel && channel.isTextBased()) {
           await (channel as TextChannel).send(`**VC要約 (${new Date().toLocaleString()}):**\n${summary}`);
-          console.log("Summary posted successfully.");
+          console.log("要約が正常に投稿されました。");
         } else {
-          console.error(`Summary channel with ID ${summaryChannelId} not found or is not a text channel.`);
+          console.error(`ID ${summaryChannelId} の要約チャンネルが見つからないか、テキストチャンネルではありません。`);
         }
       }
     } catch (error) {
-      console.error("Error generating or posting summary:", error);
+      console.error("要約の生成または投稿中にエラーが発生しました:", error);
     }
   }
 }

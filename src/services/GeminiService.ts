@@ -10,7 +10,12 @@ if (!API_KEY) {
 // Geminiクライアントを初期化
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// BufferをGenerativePartに変換するヘルパー関数
+/**
+ * BufferをGenerativePartに変換するヘルパー関数
+ * @param buffer 変換するBuffer
+ * @param mimeType MIMEタイプ
+ * @returns GenerativePart形式のオブジェクト
+ */
 function bufferToGenerativePart(buffer: Buffer, mimeType: string): { inlineData: { data: string; mimeType: string; }; } {
   return {
     inlineData: {
@@ -30,6 +35,12 @@ interface GeminiService {
  * Gemini APIと連携して音声の文字起こし、要約、メッセージ生成を行うサービス
  */
 export class GeminiServiceImpl implements GeminiService {
+  /**
+   * 音声バッファを文字起こしし、要約を生成します。
+   * @param audioBuffer 音声データを含むBuffer
+   * @param context これまでの会話の文脈
+   * @returns 生成された要約
+   */
   private readonly _model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
     safetySettings: [

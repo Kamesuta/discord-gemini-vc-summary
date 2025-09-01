@@ -5,18 +5,18 @@ import { GeminiServiceImpl } from "./services/GeminiService.js";
 import { Config } from "./utils/config.js";
 
 /**
- * Sample function to reply with "Hello" when the bot is mentioned
- * @param message The message where the bot was mentioned
+ * ボットがメンションされた際に「Hello」と返信するサンプル関数
+ * @param message ボットがメンションされたメッセージ
  */
 export async function onMentionMessage(
   message: OmitPartialGroupDMChannel<Message>,
 ): Promise<void> {
-  // Check if the bot was mentioned
+  // ボットがメンションされたかチェック
   if (!message.mentions.has(message.client.user)) {
     return;
   }
 
-  // Reply with "Hello" in the channel where the bot was mentioned
+  // ボットがメンションされたチャンネルに「Hello」と返信
   await message.channel.send(`Hello! ${message.author.username}!`);
 }
 
@@ -40,20 +40,20 @@ export async function onVoiceStateUpdate(
   geminiService: GeminiServiceImpl,
   config: Config,
 ): Promise<void> {
-  // User joined a voice channel
+  // ユーザーがボイスチャンネルに参加
   if (!oldState.channelId && newState.channelId) {
     const newChannel = newState.channel;
     if (newChannel && newChannel.isVoiceBased() && newChannel.type === ChannelType.GuildVoice && newState.member) {
       console.log(`${newState.member.user.tag} joined voice channel ${newChannel.name}`);
-      // Check for auto-join conditions
+      // 自動参加条件をチェック
       if (await voiceManager.checkAutoJoin(newChannel)) {
         await voiceManager.joinChannel(newChannel);
       }
-      // Handle new user joining an already managed channel
+      // 既に管理されているチャンネルに新しいユーザーが参加した場合の処理
       if (voiceManager.getCurrentChannel()?.id === newChannel.id) {
         void voiceManager.onUserJoin(newState.member, newChannel);
-        // Generate and send "今北三行" message
-        const recentSummary = memoryManager.getMediumTermContext(); // Or get a more recent one
+        // 「今北三行」メッセージを生成して送信
+        const recentSummary = memoryManager.getMediumTermContext(); // またはより新しいものを取得
         const currentActivity = memoryManager.getCurrentActivity();
         const welcomeMessage = await geminiService.generateWelcomeMessage(currentActivity, recentSummary);
         const textChannel = newChannel.guild.channels.cache.get(config.vc_summary.summary_channel_id);
@@ -63,7 +63,7 @@ export async function onVoiceStateUpdate(
       }
     }
   }
-  // User left a voice channel
+  // ユーザーがボイスチャンネルから退出
   else if (oldState.channelId && !newState.channelId) {
     const oldChannel = oldState.channel;
     if (oldChannel && oldChannel.isVoiceBased() && oldChannel.type === ChannelType.GuildVoice && oldState.member) {
@@ -73,19 +73,19 @@ export async function onVoiceStateUpdate(
       }
     }
   }
-  // User moved channels or changed mute/deaf status
+  // ユーザーがチャンネルを移動したか、ミュート/デフ状態を変更
   else if (oldState.channelId && newState.channelId && oldState.channelId === newState.channelId) {
-    // Mute/Unmute status change
+    // ミュート/デフ状態の変更
     if (oldState.selfMute !== newState.selfMute || oldState.serverMute !== newState.serverMute) {
       const channel = newState.channel;
       if (channel && channel.isVoiceBased() && channel.type === ChannelType.GuildVoice && newState.member) {
         if (voiceManager.getCurrentChannel()?.id === channel.id) {
           if (newState.member.voice.mute && !oldState.member?.voice.mute) {
             console.log(`${newState.member.user.tag} muted themselves.`);
-            void voiceManager.onUserLeave(newState.member, channel); // Treat as leaving for recording purposes
+            void voiceManager.onUserLeave(newState.member, channel); // 録音目的で退出として扱う
           } else if (!newState.member.voice.mute && oldState.member?.voice.mute) {
             console.log(`${newState.member.user.tag} unmuted themselves.`);
-            void voiceManager.onUserJoin(newState.member, channel); // Treat as joining for recording purposes
+            void voiceManager.onUserJoin(newState.member, channel); // 録音目的で参加として扱う
           }
         }
       }

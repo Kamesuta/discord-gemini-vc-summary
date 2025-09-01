@@ -32,7 +32,7 @@ export interface Config {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-// If config.toml does not exist, copy config.default.toml
+// config.tomlが存在しない場合、config.default.tomlをコピー
 if (!existsSync(getWorkdirPath("config.toml"))) {
   copyFileSync(
     getWorkdirPath("config.default.toml"),
@@ -40,16 +40,16 @@ if (!existsSync(getWorkdirPath("config.toml"))) {
   );
 }
 
-/** Configuration */
+/** 設定 */
 export const config: Config = parse(
   readFileSync(getWorkdirPath("config.toml"), "utf-8"),
 ) as Config;
 
-// Check the types
-// basic type: config.some_text_setting && typeof config.some_text_setting === 'string'
-// object type: config.some_object_setting && typeof config.some_object_setting === 'object'
-// array type: config.some_array_setting && Array.isArray(config.some_array_setting)
+// 型チェック
+// 基本型: config.some_text_setting && typeof config.some_text_setting === 'string'
+// オブジェクト型: config.some_object_setting && typeof config.some_object_setting === 'object'
+// 配列型: config.some_array_setting && Array.isArray(config.some_array_setting)
 assert(
   config.guild_ids && Array.isArray(config.guild_ids),
-  "guild_ids is required.",
+  "guild_idsは必須です。",
 );

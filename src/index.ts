@@ -13,14 +13,14 @@ import { SummaryScheduler } from "./services/SummaryScheduler.js";
 import { ErrorHandler } from "./utils/ErrorHandler.js";
 
 /**
- * Discord Client
+ * Discordクライアント
  */
 export const client: Client = new Client({
-  // Specify the Gateway Intents used by the bot
+  // ボットが使用するゲートウェイインテントを指定
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildVoiceStates],
 });
 
-// Initialize services
+// サービスを初期化
 const _errorHandler = new ErrorHandler();
 const geminiService = new GeminiServiceImpl();
 const memoryManager = new MemoryManager();
@@ -29,23 +29,23 @@ const voiceManager = new VoiceManagerImpl(audioRecorder, config);
 const summaryScheduler = new SummaryScheduler(client, config, geminiService, memoryManager, audioRecorder, voiceManager);
 
 /**
- * Command Handler
+ * コマンドハンドラー
  */
 const commandHandler = new CommandHandler(commands);
 
-// Register interaction handlers
+// インタラクションハンドラーを登録
 client.on(
   Events.ClientReady,
   nowait(async () => {
-    logger.info(`Logged in as ${client.user?.username ?? "Unknown"}!`);
+    logger.info(`ログインしました: ${client.user?.username ?? "不明"}!`);
 
-    // Register commands
+    // コマンドを登録
     await commandHandler.registerCommands();
 
-    // Start summary scheduler
+    // 要約スケジューラーを開始
     summaryScheduler.start();
 
-    logger.info(`Interaction registration completed`);
+    logger.info(`インタラクションの登録が完了しました`);
   }),
 );
 client.on(
@@ -53,10 +53,10 @@ client.on(
   nowait(commandHandler.onInteractionCreate.bind(commandHandler)),
 );
 
-// Event handler sample: Respond with "Hello" when mentioned
+// イベントハンドラーの例: メンションされたら「Hello」と返信
 client.on(Events.MessageCreate, nowait(onMentionMessage));
 
-// Voice state update event handler
+// ボイスステート更新イベントハンドラー
 client.on(
   Events.VoiceStateUpdate,
   nowait(async (oldState: VoiceState, newState: VoiceState) => {
@@ -64,5 +64,5 @@ client.on(
   }),
 );
 
-// Log in to Discord
+// Discordにログイン
 await client.login(process.env.DISCORD_TOKEN);
