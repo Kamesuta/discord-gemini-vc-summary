@@ -13,8 +13,7 @@
     "lint:fix": "tsc --noEmit && eslint src --ext .ts --fix",
     "prettier": "prettier --write",
     "lint-staged": "lint-staged",
-    "prepare": "if-env NODE_ENV=production && echo 'Skipping husky in production' || husky",
-    "heroku-postbuild": "prisma generate && prisma migrate deploy"
+    "prepare": "if-env NODE_ENV=production && echo 'Skipping husky in production' || husky"
   },
   "author": "Kamesuta",
   "license": "MIT",
@@ -39,12 +38,10 @@
   "dependencies": {
     "@discordjs/voice": "^0.19.0",
     "@google/generative-ai": "^0.24.1",
-    "@prisma/client": "^6.5.0",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "if-env": "^1.0.4",
     "log4js": "^6.9.1",
-    "prisma": "^6.5.0",
     "toml": "^3.0.0",
     "tsx": "^4.19.3"
   }
