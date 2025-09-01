@@ -1,7 +1,13 @@
 import { SlashCommandBuilder } from "discord.js";
 import { CommandGroupInteraction } from "../base/command_base.js";
 
+/**
+ * VC要約botの管理コマンドグループ
+ */
 export class VcSummaryCommand extends CommandGroupInteraction {
+  /**
+   * コマンド定義
+   */
   command = new SlashCommandBuilder()
     .setName("vc-summary")
     .setDescription("VC要約botの管理")

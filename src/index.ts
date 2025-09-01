@@ -21,7 +21,7 @@ export const client: Client = new Client({
 });
 
 // Initialize services
-const errorHandler = new ErrorHandler();
+const _errorHandler = new ErrorHandler();
 const geminiService = new GeminiServiceImpl();
 const memoryManager = new MemoryManager();
 const audioRecorder = new AudioRecorder();

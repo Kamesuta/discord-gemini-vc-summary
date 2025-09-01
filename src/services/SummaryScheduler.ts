@@ -5,6 +5,9 @@ import { MemoryManager } from "./MemoryManager.js";
 import { AudioRecorder } from "./AudioRecorder.js";
 import { VoiceManagerImpl } from "./VoiceManager.js";
 
+/**
+ * 定期的にVCの要約を生成し、指定されたチャンネルに投稿するスケジューラー
+ */
 export class SummaryScheduler {
   private _client: Client;
   private _config: Config;
@@ -14,6 +17,15 @@ export class SummaryScheduler {
   private _voiceManager: VoiceManagerImpl;
   private _intervalId: NodeJS.Timeout | null = null;
 
+  /**
+   * SummarySchedulerのコンストラクタ
+   * @param client Discordクライアント
+   * @param config 設定情報
+   * @param geminiService Gemini APIサービス
+   * @param memoryManager メモリー管理サービス
+   * @param audioRecorder 音声録音サービス
+   * @param voiceManager ボイスチャンネル管理サービス
+   */
   constructor(
     client: Client,
     config: Config,
@@ -30,6 +42,10 @@ export class SummaryScheduler {
     this._voiceManager = voiceManager;
   }
 
+  /**
+   * スケジューラーを開始します。
+   * 設定された間隔で要約を生成し投稿します。
+   */
   start(): void {
     if (this._intervalId) {
       console.log("Summary scheduler already running.");
@@ -46,6 +62,9 @@ export class SummaryScheduler {
     console.log(`Summary scheduler started, posting every ${intervalMinutes} minutes.`);
   }
 
+  /**
+   * スケジューラーを停止します。
+   */
   stop(): void {
     if (this._intervalId) {
       clearInterval(this._intervalId);
@@ -54,6 +73,10 @@ export class SummaryScheduler {
     }
   }
 
+  /**
+   * 要約を生成し、指定されたチャンネルに投稿します。
+   * 短期メモリーのコンテキストがなければスキップします。
+   */
   private async _generateAndPostSummary(): Promise<void> {
     console.log("Attempting to generate and post summary...");
     const shortTermContext = this._memoryManager.getShortTermContext();

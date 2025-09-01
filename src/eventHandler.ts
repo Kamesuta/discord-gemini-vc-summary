@@ -20,6 +20,18 @@ export async function onMentionMessage(
   await message.channel.send(`Hello! ${message.author.username}!`);
 }
 
+/**
+ * ボイスステートの更新イベントを処理します。
+ * ユーザーのVC参加/退出、ミュート状態の変更などを検知し、
+ * 必要に応じてボットのVC参加/退出、録音開始/停止、
+ * 「今北三行」メッセージの送信などを行います。
+ * @param oldState 変更前のボイスステート
+ * @param newState 変更後のボイスステート
+ * @param voiceManager ボイスチャンネル管理サービス
+ * @param memoryManager メモリー管理サービス
+ * @param geminiService Gemini APIサービス
+ * @param config 設定情報
+ */
 export async function onVoiceStateUpdate(
   oldState: VoiceState,
   newState: VoiceState,

@@ -3,30 +3,38 @@ import { joinVoiceChannel, VoiceConnection, entersState, VoiceConnectionStatus }
 import { Config } from "../utils/config.js";
 import { AudioRecorder } from "./AudioRecorder.js";
 
-interface VoiceManager {
-  checkAutoJoin(channel: VoiceChannel): Promise<boolean>;
-  joinChannel(channel: VoiceChannel): Promise<void>;
-  leaveChannel(): Promise<void>;
-  getUnmutedUsers(channel: VoiceChannel): User[];
-  onUserJoin(member: GuildMember, channel: VoiceChannel): void;
-  onUserLeave(member: GuildMember, channel: VoiceChannel): void;
-}
-
+/**
+ * ボイスチャンネルの管理とユーザーの監視を行うクラス
+ */
 export class VoiceManagerImpl implements VoiceManager {
   private _connection: VoiceConnection | null = null;
   private _currentChannel: VoiceChannel | null = null;
   private _audioRecorder: AudioRecorder;
   private _config: Config;
 
+  /**
+   * VoiceManagerImplのコンストラクタ
+   * @param audioRecorder 音声録音サービス
+   * @param config 設定情報
+   */
   constructor(audioRecorder: AudioRecorder, config: Config) {
     this._audioRecorder = audioRecorder;
     this._config = config;
   }
 
+  /**
+   * 現在接続しているボイスチャンネルを取得します。
+   * @returns 現在のボイスチャンネル、またはnull
+   */
   public getCurrentChannel(): VoiceChannel | null {
     return this._currentChannel;
   }
 
+  /**
+   * ボットがボイスチャンネルに自動参加すべきかチェックします。
+   * @param channel チェックするボイスチャンネル
+   * @returns 自動参加すべきであればtrue、そうでなければfalse
+   */
   checkAutoJoin(channel: VoiceChannel): Promise<boolean> {
     if (this._connection) {
       return Promise.resolve(false); // Already in a voice channel
@@ -52,6 +60,10 @@ export class VoiceManagerImpl implements VoiceManager {
     return Promise.resolve(unmutedUsers.length >= this._config.vc_summary.min_users_to_join);
   }
 
+  /**
+   * ボットをボイスチャンネルに参加させます。
+   * @param channel 参加するボイスチャンネル
+   */
   async joinChannel(channel: VoiceChannel): Promise<void> {
     if (this._connection && this._connection.state.status !== VoiceConnectionStatus.Destroyed) {
       console.log(`Already connected to a voice channel. Leaving current channel first.`);
@@ -93,6 +105,10 @@ export class VoiceManagerImpl implements VoiceManager {
     });
   }
 
+  /**
+   * ボットを現在のボイスチャンネルから退出させます。
+   * @returns なし
+   */
   leaveChannel(): Promise<void> {
     if (this._connection) {
       // Stop all recordings before leaving
@@ -109,12 +125,22 @@ export class VoiceManagerImpl implements VoiceManager {
     return Promise.resolve();
   }
 
+  /**
+   * 指定されたボイスチャンネル内のミュートされていないユーザーを取得します。
+   * @param channel ボイスチャンネル
+   * @returns ミュートされていないユーザーの配列
+   */
   getUnmutedUsers(channel: VoiceChannel): User[] {
     return channel.members
       .filter(member => !member.voice.mute && !member.user.bot)
       .map(member => member.user);
   }
 
+  /**
+   * ユーザーがボイスチャンネルに参加した際の処理を行います。
+   * @param member 参加したギルドメンバー
+   * @param channel 参加したボイスチャンネル
+   */
   onUserJoin(member: GuildMember, channel: VoiceChannel): void {
     if (this._currentChannel?.id === channel.id && !member.user.bot && !member.voice.mute) {
       console.log(`User ${member.user.tag} joined and is unmuted. Starting recording.`);
@@ -122,7 +148,12 @@ export class VoiceManagerImpl implements VoiceManager {
     }
   }
 
-  onUserLeave(member: GuildMember, channel: VoiceChannel): void {
+  /**
+   * ユーザーがボイスチャンネルから退出した際の処理を行います。
+   * @param member 退出したギルドメンバー
+   * @param channel 退出したボイスチャンネル
+   */
+  async onUserLeave(member: GuildMember, channel: VoiceChannel): Promise<void> {
     if (this._currentChannel?.id === channel.id && !member.user.bot) {
       console.log(`User ${member.user.tag} left. Stopping recording.`);
       this._audioRecorder.stopRecording(member.id);
@@ -131,8 +162,17 @@ export class VoiceManagerImpl implements VoiceManager {
       const remainingUsers = channel.members.filter(m => !m.user.bot && !m.voice.mute);
       if (remainingUsers.size === 0) {
         console.log("All non-bot users left. Leaving channel.");
-        void this.leaveChannel();
+        await this.leaveChannel();
       }
     }
   }
+}
+
+interface VoiceManager {
+  checkAutoJoin(channel: VoiceChannel): Promise<boolean>;
+  joinChannel(channel: VoiceChannel): Promise<void>;
+  leaveChannel(): Promise<void>;
+  getUnmutedUsers(channel: VoiceChannel): User[];
+  onUserJoin(member: GuildMember, channel: VoiceChannel): void;
+  onUserLeave(member: GuildMember, channel: VoiceChannel): Promise<void>;
 }

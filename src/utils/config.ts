@@ -4,7 +4,7 @@ import { getWorkdirPath } from "./workdir.js";
 import { copyFileSync, existsSync, readFileSync } from "fs";
 
 /**
- * Structure of the configuration file
+ * 設定ファイルの構造を定義するインターフェース
  */
 export interface Config {
   /*
@@ -13,14 +13,20 @@ export interface Config {
    */
   /* eslint-disable @typescript-eslint/naming-convention */
 
-  /** Server IDs */
+  /** サーバーIDの配列 */
   guild_ids: string[];
 
+  /** VC要約機能に関する設定 */
   vc_summary: {
+    /** ボットがVCに参加するために必要なミュートされていないユーザーの最小数 */
     min_users_to_join: number;
+    /** ボットがVCに参加を許可されるカテゴリIDの配列 */
     allowed_category_ids: string[];
+    /** ボットがVCに参加を拒否されるチャンネルIDの配列 */
     denied_channel_ids: string[];
+    /** 定期要約を投稿する間隔（分） */
     summary_interval: number;
+    /** 要約を投稿するテキストチャンネルのID */
     summary_channel_id: string;
   };
   /* eslint-enable @typescript-eslint/naming-convention */

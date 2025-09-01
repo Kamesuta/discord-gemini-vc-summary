@@ -26,6 +26,9 @@ interface GeminiService {
   updateCurrentActivity(transcription: string, previousActivity: string): Promise<string>;
 }
 
+/**
+ * Gemini APIと連携して音声の文字起こし、要約、メッセージ生成を行うサービス
+ */
 export class GeminiServiceImpl implements GeminiService {
   private readonly _model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
@@ -49,6 +52,12 @@ export class GeminiServiceImpl implements GeminiService {
     ],
   });
 
+  /**
+   * 音声バッファを文字起こしし、要約を生成します。
+   * @param audioBuffer 音声データを含むBuffer
+   * @param context これまでの会話の文脈
+   * @returns 生成された要約
+   */
   async transcribeAndSummarize(audioBuffer: Buffer, context: string): Promise<string> {
     try {
       const audioFile = bufferToGenerativePart(audioBuffer, "audio/mp3");
@@ -73,6 +82,12 @@ ${context}` : ""}
     }
   }
 
+  /**
+   * 新規参加者向けのウェルカムメッセージを生成します。
+   * @param currentActivity 現在の活動内容
+   * @param recentSummary 最近の要約
+   * @returns 生成されたウェルカムメッセージ
+   */
   async generateWelcomeMessage(currentActivity: string, recentSummary: string): Promise<string> {
     const prompt = `
     DiscordのVCに新しく参加したユーザー向けのウェルカムメッセージを作成してください。
@@ -86,6 +101,12 @@ ${context}` : ""}
     return result.response.text();
   }
 
+  /**
+   * 会話の文字起こしと前回の活動内容を基に、現在の活動内容を更新します。
+   * @param transcription 会話の文字起こし
+   * @param previousActivity 前回の活動内容
+   * @returns 更新された活動内容
+   */
   async updateCurrentActivity(transcription: string, previousActivity: string): Promise<string> {
     const prompt = `
     以下の会話の文字起こしと前回の活動内容を基に、現在の活動内容を更新してください。

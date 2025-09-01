@@ -2,6 +2,9 @@ import { AudioReceiveStream, EndBehaviorType, VoiceReceiver } from "@discordjs/v
 import { createWriteStream, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 
+/**
+ * 音声セグメントのインターフェース
+ */
 interface AudioSegment {
   userId: string;
   startTime: Date;
@@ -10,6 +13,9 @@ interface AudioSegment {
   transcription?: string;
 }
 
+/**
+ * 音声録音とセグメント管理を行うクラス
+ */
 export class AudioRecorder {
   private readonly _audioBuffers: Map<string, Buffer[]> = new Map();
   private readonly _receiveStreams: Map<string, AudioReceiveStream> = new Map();
@@ -17,12 +23,21 @@ export class AudioRecorder {
   private readonly _segments: Map<string, AudioSegment[]> = new Map();
   private readonly _tempDir: string = join(process.cwd(), "temp_audio");
 
+  /**
+   * AudioRecorderのコンストラクタ
+   * 一時音声ファイル保存ディレクトリを作成します。
+   */
   constructor() {
     if (!existsSync(this._tempDir)) {
       mkdirSync(this._tempDir);
     }
   }
 
+  /**
+   * 指定されたユーザーの音声録音を開始します。
+   * @param userId 録音を開始するユーザーのID
+   * @param receiver ボイスレシーバー
+   */
   startRecording(userId: string, receiver: VoiceReceiver): void {
     if (this._receiveStreams.has(userId)) {
       console.warn(`Recording already started for user ${userId}`);
@@ -75,6 +90,11 @@ export class AudioRecorder {
     console.log(`Started recording for user ${userId}`);
   }
 
+  /**
+   * 指定されたユーザーの音声録音を停止し、録音されたセグメントを返します。
+   * @param userId 録音を停止するユーザーのID
+   * @returns 録音された音声セグメントの配列
+   */
   stopRecording(userId: string): AudioSegment[] {
     if (this._receiveStreams.has(userId)) {
       this._receiveStreams.get(userId)?.destroy();
@@ -92,6 +112,10 @@ export class AudioRecorder {
     return userSegments;
   }
 
+  /**
+   * 音声セグメントを終了し、バッファをクリアします。
+   * @param userId セグメントを終了するユーザーのID
+   */
   private _endSegment(userId: string): void {
     const buffers = this._audioBuffers.get(userId);
     if (buffers && buffers.length > 0) {
@@ -108,6 +132,11 @@ export class AudioRecorder {
     }
   }
 
+  /**
+   * 無音を検出します。
+   * @param _userId ユーザーID (未使用)
+   * @returns 無音状態であればtrue、そうでなければfalse
+   */
   detectSilence(_userId: string): boolean {
     // This is handled by EndBehaviorType.AfterSilence in subscribe options
     // and the _segmentTimers logic. This method might not be directly needed
@@ -115,6 +144,11 @@ export class AudioRecorder {
     return false; // Placeholder
   }
 
+  /**
+   * 指定されたユーザーの音声セグメントを取得します。
+   * @param userId セグメントを取得するユーザーのID
+   * @returns 音声セグメントの配列
+   */
   getSegments(userId: string): AudioSegment[] {
     return this._segments.get(userId) || [];
   }
