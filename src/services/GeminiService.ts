@@ -11,7 +11,7 @@ if (!API_KEY) {
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // BufferをGenerativePartに変換するヘルパー関数
-function bufferToGenerativePart(buffer: Buffer, mimeType: string) {
+function bufferToGenerativePart(buffer: Buffer, mimeType: string): { inlineData: { data: string; mimeType: string; }; } {
   return {
     inlineData: {
       data: buffer.toString("base64"),
@@ -27,7 +27,7 @@ interface GeminiService {
 }
 
 export class GeminiServiceImpl implements GeminiService {
-  private readonly model = genAI.getGenerativeModel({
+  private readonly _model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
     safetySettings: [
       {
@@ -64,7 +64,7 @@ export class GeminiServiceImpl implements GeminiService {
 ${context}` : ""}
       `;
 
-      const result = await this.model.generateContent([prompt, audioFile]);
+      const result = await this._model.generateContent([prompt, audioFile]);
       const response = result.response;
       return response.text();
     } catch (error) {
@@ -82,7 +82,7 @@ ${context}` : ""}
     現在の活動内容: ${currentActivity}
     最近の要約: ${recentSummary}
     `;
-    const result = await this.model.generateContent(prompt);
+    const result = await this._model.generateContent(prompt);
     return result.response.text();
   }
 
@@ -94,7 +94,7 @@ ${context}` : ""}
     会話の文字起こし: ${transcription}
     前回の活動内容: ${previousActivity}
     `;
-    const result = await this.model.generateContent(prompt);
+    const result = await this._model.generateContent(prompt);
     return result.response.text();
   }
 }

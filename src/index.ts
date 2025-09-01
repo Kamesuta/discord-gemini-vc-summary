@@ -1,6 +1,6 @@
 import { logger } from "./utils/log.js";
 import { nowait } from "./utils/utils.js";
-import { Client, Events, GatewayIntentBits } from "discord.js";
+import { Client, Events, GatewayIntentBits, VoiceState } from "discord.js";
 import CommandHandler from "./commands/CommandHandler.js";
 import commands from "./commands/commands.js";
 import { onMentionMessage, onVoiceStateUpdate } from "./eventHandler.js";
@@ -59,7 +59,7 @@ client.on(Events.MessageCreate, nowait(onMentionMessage));
 // Voice state update event handler
 client.on(
   Events.VoiceStateUpdate,
-  nowait(async (oldState, newState) => {
+  nowait(async (oldState: VoiceState, newState: VoiceState) => {
     await onVoiceStateUpdate(oldState, newState, voiceManager, memoryManager, geminiService, config);
   }),
 );

@@ -16,7 +16,6 @@ export interface Config {
   /** Server IDs */
   guild_ids: string[];
 
-  /* eslint-enable @typescript-eslint/naming-convention */
   vc_summary: {
     min_users_to_join: number;
     allowed_category_ids: string[];
@@ -24,6 +23,7 @@ export interface Config {
     summary_interval: number;
     summary_channel_id: string;
   };
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 // If config.toml does not exist, copy config.default.toml

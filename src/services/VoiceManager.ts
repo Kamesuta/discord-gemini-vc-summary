@@ -1,5 +1,5 @@
-import { Client, VoiceChannel, User, GuildMember, ChannelType } from "discord.js";
-import { joinVoiceChannel, VoiceConnection, entersState, VoiceConnectionStatus, EndBehaviorType, get  } from "@discordjs/voice";
+import { VoiceChannel, User, GuildMember, ChannelType } from "discord.js";
+import { joinVoiceChannel, VoiceConnection, entersState, VoiceConnectionStatus } from "@discordjs/voice";
 import { Config } from "../utils/config.js";
 import { AudioRecorder } from "./AudioRecorder.js";
 
@@ -13,98 +13,100 @@ interface VoiceManager {
 }
 
 export class VoiceManagerImpl implements VoiceManager {
-  private connection: VoiceConnection | null = null;
-  private currentChannel: VoiceChannel | null = null;
-  private audioRecorder: AudioRecorder;
-  private config: Config;
+  private _connection: VoiceConnection | null = null;
+  private _currentChannel: VoiceChannel | null = null;
+  private _audioRecorder: AudioRecorder;
+  private _config: Config;
 
   constructor(audioRecorder: AudioRecorder, config: Config) {
-    this.audioRecorder = audioRecorder;
-    this.config = config;
+    this._audioRecorder = audioRecorder;
+    this._config = config;
   }
 
-  async checkAutoJoin(channel: VoiceChannel): Promise<boolean> {
-    if (this.connection) {
-      return false; // Already in a voice channel
+  public getCurrentChannel(): VoiceChannel | null {
+    return this._currentChannel;
+  }
+
+  checkAutoJoin(channel: VoiceChannel): Promise<boolean> {
+    if (this._connection) {
+      return Promise.resolve(false); // Already in a voice channel
     }
 
     // Check if the channel is a voice channel
     if (channel.type !== ChannelType.GuildVoice) {
-      return false;
+      return Promise.resolve(false);
     }
 
     // Check allowed category IDs
-    if (this.config.vc_summary.allowed_category_ids.length > 0 &&
-        !this.config.vc_summary.allowed_category_ids.includes(channel.parentId || "")) {
-      return false;
+    if (this._config.vc_summary.allowed_category_ids.length > 0 &&
+        !this._config.vc_summary.allowed_category_ids.includes(channel.parentId || "")) {
+      return Promise.resolve(false);
     }
 
     // Check denied channel IDs
-    if (this.config.vc_summary.denied_channel_ids.includes(channel.id)) {
-      return false;
+    if (this._config.vc_summary.denied_channel_ids.includes(channel.id)) {
+      return Promise.resolve(false);
     }
 
     const unmutedUsers = this.getUnmutedUsers(channel);
-    return unmutedUsers.length >= this.config.vc_summary.min_users_to_join;
+    return Promise.resolve(unmutedUsers.length >= this._config.vc_summary.min_users_to_join);
   }
 
   async joinChannel(channel: VoiceChannel): Promise<void> {
-    if (this.connection && this.connection.state.status !== VoiceConnectionStatus.Destroyed) {
+    if (this._connection && this._connection.state.status !== VoiceConnectionStatus.Destroyed) {
       console.log(`Already connected to a voice channel. Leaving current channel first.`);
-      await this.leaveChannel();
+      void this.leaveChannel(); // Changed from await this.leaveChannel();
     }
 
-    this.connection = joinVoiceChannel({
+    this._connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
       selfDeaf: false, // Bot should not be deafened to record audio
     });
 
-    this.currentChannel = channel;
+    this._currentChannel = channel;
 
     try {
-      await entersState(this.connection, VoiceConnectionStatus.Ready, 30_000);
+      await entersState(this._connection, VoiceConnectionStatus.Ready, 30_000);
       console.log(`Joined voice channel: ${channel.name}`);
 
       // Start recording for all current unmuted users
       this.getUnmutedUsers(channel).forEach(user => {
         const member = channel.guild.members.cache.get(user.id);
         if (member && !member.voice.mute && !member.user.bot) {
-          this.audioRecorder.startRecording(user.id, this.connection!.receiver);
+          this._audioRecorder.startRecording(user.id, this._connection!.receiver);
         }
       });
 
     } catch (error) {
-      this.connection.destroy();
-      this.connection = null;
-      this.currentChannel = null;
+      this._connection.destroy();
+      this._connection = null;
+      this._currentChannel = null;
       console.error(`Failed to join voice channel ${channel.name}:`, error);
       throw error;
     }
 
-    this.connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
-      if (newState.reason === VoiceConnectionStatus.WebSocketDisconnected ||
-          newState.reason === VoiceConnectionStatus.Destroyed) {
-        console.log("Voice connection disconnected or destroyed.");
-        this.leaveChannel();
-      }
+    this._connection.on(VoiceConnectionStatus.Disconnected, (_oldState, newState) => {
+      console.log(`Voice connection disconnected. Reason: ${newState.reason}, Status: ${newState.status}`);
+      void this.leaveChannel();
     });
   }
 
-  async leaveChannel(): Promise<void> {
-    if (this.connection) {
+  leaveChannel(): Promise<void> {
+    if (this._connection) {
       // Stop all recordings before leaving
-      this.currentChannel?.members.forEach(member => {
+      this._currentChannel?.members.forEach(member => {
         if (!member.user.bot) {
-          this.audioRecorder.stopRecording(member.id);
+          this._audioRecorder.stopRecording(member.id);
         }
       });
-      this.connection.destroy();
-      this.connection = null;
-      this.currentChannel = null;
+      this._connection.destroy();
+      this._connection = null;
+      this._currentChannel = null;
       console.log("Left voice channel.");
     }
+    return Promise.resolve();
   }
 
   getUnmutedUsers(channel: VoiceChannel): User[] {
@@ -114,22 +116,22 @@ export class VoiceManagerImpl implements VoiceManager {
   }
 
   onUserJoin(member: GuildMember, channel: VoiceChannel): void {
-    if (this.currentChannel?.id === channel.id && !member.user.bot && !member.voice.mute) {
+    if (this._currentChannel?.id === channel.id && !member.user.bot && !member.voice.mute) {
       console.log(`User ${member.user.tag} joined and is unmuted. Starting recording.`);
-      this.audioRecorder.startRecording(member.id, this.connection!.receiver);
+      this._audioRecorder.startRecording(member.id, this._connection!.receiver);
     }
   }
 
   onUserLeave(member: GuildMember, channel: VoiceChannel): void {
-    if (this.currentChannel?.id === channel.id && !member.user.bot) {
+    if (this._currentChannel?.id === channel.id && !member.user.bot) {
       console.log(`User ${member.user.tag} left. Stopping recording.`);
-      this.audioRecorder.stopRecording(member.id);
+      this._audioRecorder.stopRecording(member.id);
 
       // Check if all non-bot users have left
       const remainingUsers = channel.members.filter(m => !m.user.bot && !m.voice.mute);
       if (remainingUsers.size === 0) {
         console.log("All non-bot users left. Leaving channel.");
-        this.leaveChannel();
+        void this.leaveChannel();
       }
     }
   }
