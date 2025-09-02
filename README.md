@@ -1,137 +1,93 @@
-# Robust TypeScript Template for Discord.js Bot Development
+# Discord VC 要約ボット（Gemini）
 
-This is a template for building robust and scalable Discord bots using TypeScript and Discord.js.  
-It is fully compatible with VSCode, allowing you to run and debug your bot with ease.  
-The project includes ESLint and Prettier for enforcing code quality, and uses Husky to ensure clean commits.  
-It also features a modular slash command system and optional Prisma integration for database access.
+Google Gemini を用いて Discord のボイスチャットを要約する TypeScript 製ボットです。一定人数が参加中のVCに自動参加し、無音検出でユーザーごとにセグメント化しつつ録音します。定期要約の投稿と、新規参加者向けの「今北三行」メッセージも行います。
 
-## 🚀 Features
+> 設計・要件は `.kiro/specs/discord-voice-summarizer` を参照しています。
 
-- **Discord.js Interaction Command System**  
-  Define slash commands as individual files inside the `src/commands` directory.  
-  Easy to read and maintain — each command is self-contained.
+## 機能
 
-- **Prisma-ready**  
-  Includes setup for using [Prisma](https://www.prisma.io/) as your ORM with SQL databases.  
-  If you don’t need it, see [Removing Prisma](#removing-prisma) below.
+- 自動参加: ミュート解除ユーザー数が閾値以上のVCへ自動参加
+- 録音/セグメント化: ユーザーごとに録音し、無音を検出して区切り
+- 要約生成: Google Gemini API で会話を要約
+- 定期投稿: 設定間隔ごとに要約を指定チャンネルへ投稿
+- 今北三行: 新規参加者に向け現在の活動＋直近要約を要約して投稿（注意書き付き）
+- コマンド登録: サーバー単位でのスラッシュコマンド登録
 
-- **VSCode Ready**  
-  Comes with launch configurations for debugging directly in VSCode using `F5`.
+## 前提環境
 
-- **ESLint & Prettier**  
-  Enforces strict code style and formatting.
-  - Auto-fix on save for common issues.
-  - Requires return types and JSDoc for better maintainability.
+- Node.js 22.x
+- Discord Bot Token（`DISCORD_TOKEN`）
+- Google Gemini API Key（`GEMINI_API_KEY`）
+- Discord 権限: アプリコマンド、メッセージ送信、チャンネル閲覧、ボイス「接続」（必要に応じて「発言」）
 
-- **Husky & lint-staged**  
-  Runs lint and formatting checks before each commit for consistent code quality.
+## セットアップ
 
-- **Modern ESM Support**  
-  Uses ESM syntax (`import/export`) out of the box.
-
-## 📦 Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Kamesuta/discordjs-typescript-template.git
-   cd discordjs-typescript-template
-   ```
-
-2. Install dependencies:
+1. 依存関係をインストール
    ```bash
    npm install
    ```
 
-3. Set up your environment variables and config:
-   - Copy the `run/config.example.toml` file to `run/config.toml` and edit it as needed.
-    ```toml
-    # Server IDs
-    guild_ids = ["0000000000000000000"]
-    ```
-   - Copy the `.env.example` file to `.env` and set your Discord bot token:
-    ```env
-    DISCORD_TOKEN=your_token_here
-    ```
+2. 環境変数を設定
+   - `.env.example` を `.env` にコピーし、値を設定
+     ```env
+     DISCORD_TOKEN=あなたのボットトークン
+     GEMINI_API_KEY=あなたのGeminiAPIキー
+     ```
 
-3. Run the bot:
+3. 設定ファイルを用意
+   - 初回起動時に `run/config.default.toml` が自動コピーされ `run/config.toml` が生成されます
+   - もしくは `run/config.example.toml` を `run/config.toml` にコピーして編集
+     ```toml
+     guild_ids = ["あなたのサーバーID"]
+     [vc_summary]
+     min_users_to_join = 3
+     allowed_category_ids = ["許可カテゴリID"]
+     denied_channel_ids = []
+     summary_interval = 5
+     summary_channel_id = "要約投稿テキストチャンネルID"
+     ```
+   - `guild_ids` に登録したサーバーへ、ボットを招待しておいてください
+
+4. 起動
    ```bash
    npm run start
    ```
 
-4. Lint and format:
-   ```bash
-   npm run lint
-   npm run prettier
-   ```
+## 使い方
 
-## 📁 Project Structure
+- 自動動作
+  - 参加条件を満たすVCに自動参加、録音/セグメント化を開始
+  - `summary_interval` 分ごとに要約を `summary_channel_id` に投稿
+  - 新規参加者検知で「今北三行」を投稿（末尾に「-# ※VCの音声は要約生成に使用されます」を付与）
 
-```
-prisma/                # Prisma schema and client
-src/
-├── commands/          # 1 file = 1 slash command
-├── utils/               # Utilities (e.g., logging, config)
-└── index.ts           # Bot entry point
-```
+- スラッシュコマンド
+  - `/vc-summary start`（未実装のスタブ）
+  - `/vc-summary stop`（未実装のスタブ）
+  - `/vc-summary status`（未実装のスタブ）
 
-## 🎮 Adding a New Command
-To add a new command to the Discord bot:
+## 設定項目の説明（`run/config.toml`）
 
-1. Create a new command file in the appropriate directory:
-   ```ts
-   // src/commands/hello_command/HelloExampleCommand.ts
-   import { ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from 'discord.js';
-   import { SubcommandInteraction } from '../base/command_base.js';
-   import helloCommand from './HelloCommand.js';
+- `guild_ids`: コマンドを登録するサーバーIDの配列
+- `[vc_summary].min_users_to_join`: 自動参加に必要なミュート解除ユーザー最小人数
+- `[vc_summary].allowed_category_ids`: 動作を許可するVCカテゴリID一覧（空なら全許可）
+- `[vc_summary].denied_channel_ids`: 参加を拒否する特定VCチャンネルID一覧
+- `[vc_summary].summary_interval`: 定期要約の間隔（分）。0以下で無効
+- `[vc_summary].summary_channel_id`: 要約投稿先のテキストチャンネルID
 
-   class HelloExampleCommand extends SubcommandInteraction {
-      command = new SlashCommandSubcommandBuilder()
-         .setName('example')
-         .setDescription('Example command');
+補足:
+- 作業ディレクトリは既定で `run`。`APP_BASEDIR` 環境変数で変更可能
+- ログ出力は `run/bot.log`
+- 一時音声は `temp_audio/` に保存（プロセス終了等でクリーンアップされる場合があります）
 
-      async onCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-         await interaction.reply({ content: 'Hello world!' });
-      }
-   }
+## トラブルシュート
 
-   export default new HelloExampleCommand(helloCommand);
-   ```
-2. Register the command in the appropriate commands list file:
-   ```ts
-   // src/commands/hello_command/commands.ts
-   import helloExampleCommand from './HelloExampleCommand.js';
+- 起動時に「GEMINI_API_KEY が設定されていません」
+  - `.env` の `GEMINI_API_KEY` を設定してください
+- コマンドが表示されない
+  - `run/config.toml` の `guild_ids` に対象サーバーのIDが含まれているか、ボットが該当サーバーに参加しているか確認
+- 要約が投稿されない
+  - `summary_interval` が 0 以下でないか、`summary_channel_id` が正しいか確認
 
-   const commands: InteractionBase[] = [
-      // existing commands...
-      helloExampleCommand, // Add your new command here
-   ];
-   ```
-That's it! The command system will automatically register your new command with Discord when the bot starts.  
-You can now use the command in Discord by typing `/hello example`.
+## ライセンス
 
-## 🗑 Removing Prisma
-
-If you don’t need a database:
-
-1. Remove `import { PrismaClient }` and `new PrismaClient()` lines  from `src/index.ts`.
-2. Remove `heroku-postbuild` line from `package.json`.
-3. Uninstall the Prisma packages:
-   ```bash
-   npm uninstall prisma @prisma/client
-   ```
-
-## 🗄 Using Prisma
-
-If you want to use Prisma:
-
-1. npx prisma init
-2. Edit the `prisma/schema.prisma` file to set up your database connection and models.
-3. Add your database connection string to the `.env` file:
-   ```env
-   DATABASE_URL=your_database_connection_string
-   ```
-4. Run the following command to generate the Prisma client and create the initial migration:
-   ```bash
-   npx prisma generate
-   npx prisma migrate dev --name init
-   ```
+MIT License
